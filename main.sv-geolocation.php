@@ -13,9 +13,11 @@ class AttributeGeolocation extends AttributeDBField
 	
 	public function GetSQLColumns($bFullSpec = false)
 	{
+		$iPrecision = $this->GetPrecision();
+		
 		$aColumns = array();
-		$aColumns[$this->GetCode().'_lat'] = 'DECIMAL(8,6)';
-		$aColumns[$this->GetCode().'_lng'] = 'DECIMAL(9,6)';
+		$aColumns[$this->GetCode() . '_lat'] = sprintf('DECIMAL(%d,%d)', 2 + $iPrecision, $iPrecision);
+		$aColumns[$this->GetCode() . '_lng'] = sprintf('DECIMAL(%d,%d)', 3 + $iPrecision, $iPrecision);
 		return $aColumns;
 	}
 	
@@ -150,15 +152,17 @@ class AttributeGeolocation extends AttributeDBField
 	 */
 	function GetForTemplate($value, $sVerb, $oHostObject = null, $bLocalize = true)
 	{
+		$iPrecision = $this->GetPrecision();
+		
 		switch ($sVerb)
 		{
 			case 'rijksdriehoek':
 			case 'rd':
-				if ($value instanceof ormGeolocation) return sprintf('%f,%f', $value->getRijksdriehoekX(), $value->getRijksdriehoekY());
+				if ($value instanceof ormGeolocation) return sprintf('%.' . $iPrecision . 'f,%' . $iPrecision . 'f', $value->getRijksdriehoekX(), $value->getRijksdriehoekY());
 				else return;
 
 			case 'wgs_84':
-				if ($value instanceof ormGeolocation) return sprintf('%f,%f', $value->getLatitude(), $value->getLongitude());
+				if ($value instanceof ormGeolocation) return sprintf('%.' . $iPrecision . 'f,%' . $iPrecision.'f', $value->getLatitude(), $value->getLongitude());
 				else return;
 
 			default:
@@ -214,6 +218,14 @@ class AttributeGeolocation extends AttributeDBField
 	{
 		return (int) $this->GetOptional('height', 150);
 	}
+
+	/**
+	 * @return int Precision of the coordinates (digits after the .)
+	 */
+	public function GetPrecision()
+	{
+		return (int) $this->GetOptional('precision', 6);
+	}
 	
 	/**
 	 * @return string Image URL to use as static map
@@ -222,21 +234,24 @@ class AttributeGeolocation extends AttributeDBField
 	 */
 	public static function GetStaticMapUrl()
 	{
+		$iPrecision = $this->GetPrecision();
+
 		$sStaticMapUrl = utils::GetConfig()->GetModuleSetting('sv-geolocation', 'staticmapurl');
 		if ($sStaticMapUrl) return $sStaticMapUrl;
-		
+
 		$sApiKey = utils::GetConfig()->GetModuleSetting('sv-geolocation', 'api_key');
 		switch (utils::GetConfig()->GetModuleSetting('sv-geolocation', 'provider'))
 		{
 			case 'GoogleMaps':
-				if ($sApiKey) return 'https://maps.googleapis.com/maps/api/staticmap?markers=%1$f,%2$f&size=%3$dx%4$d&key=%5$s';
+				if ($sApiKey) return 'https://maps.googleapis.com/maps/api/staticmap?markers=%1$.' . $iPrecision . 'f,%2$.' . $iPrecision . 'f&size=%3$dx%4$d&key=%5$s';
 				break;
-				
+
 			case 'OpenStreetMap':
-				return 'http://staticmap.openstreetmap.de/staticmap.php?center=%1$f,%2$f&markers=%1$f,%2$f,red-pushpin&size=%3$dx%4$d&zoom=%6$d';
-				
+				return 'http://staticmap.openstreetmap.de/staticmap.php?center=%1$.' . $iPrecision . 'f,%2$.' . $iPrecision . 'f&markers=%1$.' . $iPrecision . 'f,%2$.' . $iPrecision . 'f,red-pushpin&size=%3$dx%4$d&zoom=%6$d';
+				break;
+
 			case 'MapQuest':
-				if ($sApiKey) return 'https://www.mapquestapi.com/staticmap/v5/map?locations=%1$f,%2$f&size=%3$d,%4$d&zoom=%6$d&key=%5$s';
+				if ($sApiKey) return 'https://www.mapquestapi.com/staticmap/v5/map?locations=%1$.' . $iPrecision . 'f,%2$.' . $iPrecision . 'f&size=%3$d,%4$d&zoom=%6$d&key=%5$s';
 				break;
 		}
 		return null;

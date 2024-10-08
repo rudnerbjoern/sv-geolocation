@@ -93,6 +93,9 @@ Defaults to 200.
 * height _(optional)_
 Height of the static image, in pixels.
 Defaults to 150.
+* precision _(optional)_
+Precision of the coordinates (number of digits after the decimal point)
+Defaults to 6.
 
 ### Example
 
